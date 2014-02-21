@@ -20,11 +20,11 @@ version = VERSION_NAME
 group = GROUP
 
 android {
-    compileSdkVersion 17
+    compileSdkVersion 19
     buildToolsVersion "19.0.1"
 
     defaultConfig {
-        minSdkVersion 10
+        minSdkVersion 8
     }
 
     lintOptions {
