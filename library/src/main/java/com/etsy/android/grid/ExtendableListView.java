@@ -27,7 +27,12 @@ import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.*;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListAdapter;
@@ -795,6 +800,36 @@ public abstract class ExtendableListView extends AbsListView {
 		super.requestDisallowInterceptTouchEvent(disallowIntercept);
 	}
 
+	private Runnable mPendingCheckForTap;
+
+	private final class CheckForTap implements Runnable {
+		@Override
+		public void run() {
+			int a = 10;
+			a++;
+			if (mTouchMode == TOUCH_MODE_DOWN) {
+				mTouchMode = TOUCH_MODE_TAP;
+				View child = getChildAt(mMotionPosition - mFirstPosition);
+				if (child != null && !child.hasFocusable()) {
+					mLayoutMode = LAYOUT_NORMAL;
+
+					if (!mDataChanged) {
+						layoutChildren();
+						child = getChildAt(mMotionPosition - mFirstPosition);
+						child.setPressed(true);
+						setPressed(true);
+
+						refreshDrawableState();
+
+						mTouchMode = TOUCH_MODE_DONE_WAITING;
+					} else {
+						mTouchMode = TOUCH_MODE_DONE_WAITING;
+					}
+				}
+			}
+		}
+	}
+
 	private boolean onTouchDown(final MotionEvent event) {
 		final int x = (int) event.getX();
 		final int y = (int) event.getY();
@@ -814,7 +849,11 @@ public abstract class ExtendableListView extends AbsListView {
 			// is it a tap or a scroll .. we don't know yet!
 			mTouchMode = TOUCH_MODE_DOWN;
 
-			// TODO : add handling for a click removed from here
+			if (mPendingCheckForTap == null) {
+				mPendingCheckForTap = new CheckForTap();
+			}
+
+			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout());
 
 			if (event.getEdgeFlags() != 0 && motionPosition < 0) {
 				// If we couldn't find a view to click on, but the down event was touching
@@ -857,7 +896,10 @@ public abstract class ExtendableListView extends AbsListView {
 			case TOUCH_MODE_DONE_WAITING:
 				// Check if we have moved far enough that it looks more like a
 				// scroll than a tap
-				startScrollIfNeeded(y);
+				if (startScrollIfNeeded(y)) {
+					break;
+				}
+
 				break;
 			case TOUCH_MODE_SCROLLING:
 //            case TOUCH_MODE_OVERSCROLL:
@@ -868,10 +910,21 @@ public abstract class ExtendableListView extends AbsListView {
 		return true;
 	}
 
+	private void cancelTapOnView() {
+		removeCallbacks(mPendingCheckForTap);
+		View motionView = getChildAt(mMotionPosition - mFirstPosition);
+		if (motionView != null) {
+			motionView.setPressed(false);
+		}
+	}
+
 
 	private boolean onTouchCancel(final MotionEvent event) {
+
+		cancelTapOnView();
 		mTouchMode = TOUCH_MODE_IDLE;
 		setPressed(false);
+
 		invalidate(); // redraw selector
 		recycleVelocityTracker();
 		mActivePointerId = INVALID_POINTER;
@@ -883,6 +936,7 @@ public abstract class ExtendableListView extends AbsListView {
 			case TOUCH_MODE_DOWN:
 			case TOUCH_MODE_TAP:
 			case TOUCH_MODE_DONE_WAITING:
+				cancelTapOnView();
 				return onTouchUpTap(event);
 
 			case TOUCH_MODE_SCROLLING:
@@ -1002,7 +1056,7 @@ public abstract class ExtendableListView extends AbsListView {
 			if (parent != null) {
 				parent.requestDisallowInterceptTouchEvent(true);
 			}
-
+			removeCallbacks(mPendingCheckForTap);
 			scrollIfNeeded(y);
 			return true;
 		}
