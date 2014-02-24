@@ -499,6 +499,10 @@ public class StaggeredGridView extends ExtendableListView {
 		return mItemMargin;
 	}
 
+	public int getmItemMargin() {
+		return mItemMargin;
+	}
+
 	@Override
 	protected LayoutParams generateChildLayoutParams(final View child) {
 		GridLayoutParams layoutParams = null;
