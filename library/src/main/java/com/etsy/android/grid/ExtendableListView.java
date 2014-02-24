@@ -805,17 +805,15 @@ public abstract class ExtendableListView extends AbsListView {
 	private final class CheckForTap implements Runnable {
 		@Override
 		public void run() {
-			int a = 10;
-			a++;
 			if (mTouchMode == TOUCH_MODE_DOWN) {
 				mTouchMode = TOUCH_MODE_TAP;
-				View child = getChildAt(mMotionPosition - mFirstPosition);
+				View child = getChildAt(mMotionPosition);
 				if (child != null && !child.hasFocusable()) {
 					mLayoutMode = LAYOUT_NORMAL;
 
 					if (!mDataChanged) {
 						layoutChildren();
-						child = getChildAt(mMotionPosition - mFirstPosition);
+						child = getChildAt(mMotionPosition);
 						child.setPressed(true);
 						setPressed(true);
 
@@ -1048,7 +1046,7 @@ public abstract class ExtendableListView extends AbsListView {
 
 			// TODO : LONG PRESS
 			setPressed(false);
-			View motionView = getChildAt(mMotionPosition - mFirstPosition);
+			View motionView = getChildAt(mMotionPosition);
 			if (motionView != null) {
 				motionView.setPressed(false);
 			}
