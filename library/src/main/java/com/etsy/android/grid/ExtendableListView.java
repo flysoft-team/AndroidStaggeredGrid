@@ -659,6 +659,8 @@ public abstract class ExtendableListView extends AbsListView {
 	// ON TOUCH
 	//
 
+	private boolean cancelTap;
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -764,9 +766,10 @@ public abstract class ExtendableListView extends AbsListView {
 							mActivePointerId = ev.getPointerId(pointerIndex);
 						}
 						final int y = (int) ev.getY(pointerIndex);
+						final int x = (int) ev.getX(pointerIndex);
 						initVelocityTrackerIfNotExists();
 						mVelocityTracker.addMovement(ev);
-						if (startScrollIfNeeded(y)) {
+						if (startScrollIfNeeded(x, y)) {
 							return true;
 						}
 						break;
@@ -851,7 +854,7 @@ public abstract class ExtendableListView extends AbsListView {
 				mPendingCheckForTap = new CheckForTap();
 			}
 
-			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout());
+			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 2);
 
 			if (event.getEdgeFlags() != 0 && motionPosition < 0) {
 				// If we couldn't find a view to click on, but the down event was touching
@@ -864,7 +867,7 @@ public abstract class ExtendableListView extends AbsListView {
 			mMotionCorrection = 0;
 			motionPosition = findMotionRow(y);
 		}
-
+		cancelTap = false;
 		mMotionX = x;
 		mMotionY = y;
 		mMotionPosition = motionPosition;
@@ -882,6 +885,7 @@ public abstract class ExtendableListView extends AbsListView {
 			return false;
 		}
 		final int y = (int) MotionEventCompat.getY(event, index);
+		final int x = (int) MotionEventCompat.getX(event, index);
 
 		// our data's changed so we need to do a layout before moving any further
 		if (mDataChanged) {
@@ -894,7 +898,7 @@ public abstract class ExtendableListView extends AbsListView {
 			case TOUCH_MODE_DONE_WAITING:
 				// Check if we have moved far enough that it looks more like a
 				// scroll than a tap
-				if (startScrollIfNeeded(y)) {
+				if (startScrollIfNeeded(x, y)) {
 					break;
 				}
 
@@ -909,6 +913,11 @@ public abstract class ExtendableListView extends AbsListView {
 	}
 
 	private void cancelTapOnView() {
+		cancelTap = true;
+		stopTapOnView();
+	}
+
+	private void stopTapOnView() {
 		removeCallbacks(mPendingCheckForTap);
 		View motionView = getChildAt(mMotionPosition - mFirstPosition);
 		if (motionView != null) {
@@ -934,7 +943,7 @@ public abstract class ExtendableListView extends AbsListView {
 			case TOUCH_MODE_DOWN:
 			case TOUCH_MODE_TAP:
 			case TOUCH_MODE_DONE_WAITING:
-				cancelTapOnView();
+				stopTapOnView();
 				return onTouchUpTap(event);
 
 			case TOUCH_MODE_SCROLLING:
@@ -966,6 +975,7 @@ public abstract class ExtendableListView extends AbsListView {
 					startFlingRunnable(velocity);
 					mTouchMode = TOUCH_MODE_FLINGING;
 					mMotionY = 0;
+					mMotionX = 0;
 					invalidate();
 					return true;
 				}
@@ -979,6 +989,11 @@ public abstract class ExtendableListView extends AbsListView {
 	}
 
 	private boolean onTouchUpTap(final MotionEvent event) {
+		if (cancelTap) {
+			invalidate();
+			cancelTap = false;
+			return true;
+		}
 		if (mPerformClick == null) {
 			invalidate();
 			mPerformClick = new PerformClick();
@@ -1030,13 +1045,16 @@ public abstract class ExtendableListView extends AbsListView {
 	 * Starts a scroll that moves the difference between y and our last motions y
 	 * if it's a movement that represents a big enough scroll.
 	 */
-	private boolean startScrollIfNeeded(final int y) {
+	private boolean startScrollIfNeeded(final int x, final int y) {
 		final int deltaY = y - mMotionY;
-		final int distance = Math.abs(deltaY);
+		final int distanceY = Math.abs(deltaY);
+
+		final int deltaX = x - mMotionX;
+		final int distanceX = Math.abs(deltaX);
 		// TODO : Overscroll?
 		// final boolean overscroll = mScrollY != 0;
 		final boolean overscroll = false;
-		if (overscroll || distance > mTouchSlop) {
+		if (overscroll || distanceY > mTouchSlop) {
 			if (overscroll) {
 				mMotionCorrection = 0;
 			} else {
@@ -1057,6 +1075,12 @@ public abstract class ExtendableListView extends AbsListView {
 			removeCallbacks(mPendingCheckForTap);
 			scrollIfNeeded(y);
 			return true;
+		}
+
+		if (distanceX > mTouchSlop) {
+			removeCallbacks(mPendingCheckForTap);
+			cancelTapOnView();
+
 		}
 		return false;
 	}
