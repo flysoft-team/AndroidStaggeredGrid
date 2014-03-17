@@ -12,8 +12,8 @@ version = VERSION_NAME
 group = GROUP
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion "19.0.2"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion 9
