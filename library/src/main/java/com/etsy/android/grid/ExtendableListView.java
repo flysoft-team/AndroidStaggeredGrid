@@ -1865,6 +1865,10 @@ public abstract class ExtendableListView extends AbsListView {
 		return Math.max(0, mFirstPosition - getHeaderViewsCount());
 	}
 
+	public int getFirstPosition() {
+		return mFirstPosition;
+	}
+
 	@Override
 	public int getLastVisiblePosition() {
 		return Math.min(mFirstPosition + getChildCount() - 1, mAdapter.getCount() - 1);

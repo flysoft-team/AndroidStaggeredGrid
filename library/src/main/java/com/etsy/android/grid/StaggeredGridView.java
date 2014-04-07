@@ -499,7 +499,7 @@ public class StaggeredGridView extends ExtendableListView {
 		return mItemMargin;
 	}
 
-	public int getmItemMargin() {
+	public int getItemMargin() {
 		return mItemMargin;
 	}
 
@@ -1151,7 +1151,6 @@ public class StaggeredGridView extends ExtendableListView {
 	public static class GridListSavedState extends ListSavedState {
 		int columnCount;
 		int[] columnTops;
-		int[] columnBottoms;
 		SparseArray positionData;
 
 		public GridListSavedState(Parcelable superState) {
@@ -1165,9 +1164,7 @@ public class StaggeredGridView extends ExtendableListView {
 			super(in);
 			columnCount = in.readInt();
 			columnTops = new int[columnCount >= 0 ? columnCount : 0];
-			columnBottoms = new int[columnCount >= 0 ? columnCount : 0];
 			in.readIntArray(columnTops);
-			in.readIntArray(columnBottoms);
 			positionData = in.readSparseArray(GridItemRecord.class.getClassLoader());
 		}
 
@@ -1176,7 +1173,6 @@ public class StaggeredGridView extends ExtendableListView {
 			super.writeToParcel(out, flags);
 			out.writeInt(columnCount);
 			out.writeIntArray(columnTops);
-			out.writeIntArray(columnBottoms);
 			out.writeSparseArray(positionData);
 		}
 
@@ -1218,12 +1214,10 @@ public class StaggeredGridView extends ExtendableListView {
 		if (haveChildren && mFirstPosition > 0) {
 			ss.columnCount = mColumnCount;
 			ss.columnTops = mColumnTops;
-			ss.columnBottoms = mColumnBottoms;
 			ss.positionData = mPositionData;
 		} else {
 			ss.columnCount = mColumnCount >= 0 ? mColumnCount : 0;
 			ss.columnTops = new int[ss.columnCount];
-			ss.columnBottoms = new int[ss.columnCount];
 			ss.positionData = new SparseArray<Object>();
 		}
 
@@ -1235,7 +1229,7 @@ public class StaggeredGridView extends ExtendableListView {
 		GridListSavedState ss = (GridListSavedState) state;
 		mColumnCount = ss.columnCount;
 		mColumnTops = ss.columnTops;
-		mColumnBottoms = ss.columnBottoms;
+		mColumnBottoms = new int[mColumnCount];
 		mPositionData = ss.positionData;
 		mNeedSync = true;
 		super.onRestoreInstanceState(ss);
