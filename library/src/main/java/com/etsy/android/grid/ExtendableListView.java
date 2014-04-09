@@ -234,9 +234,19 @@ public abstract class ExtendableListView extends AbsListView {
 
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+		onSizeChanged(w, h);
+
+	}
+
+
+	protected void onSizeChanged(int w, int h) {
+
 		if (getChildCount() > 0) {
+
 			mDataChanged = true;
+
 			rememberSyncState();
+
 		}
 	}
 
@@ -320,6 +330,7 @@ public abstract class ExtendableListView extends AbsListView {
 	 * @param data         Data to associate with this view
 	 * @param isSelectable whether the item is selectable
 	 */
+
 	public void addHeaderView(View v, Object data, boolean isSelectable) {
 
 		if (mAdapter != null && !(mAdapter instanceof HeaderViewListAdapter)) {
