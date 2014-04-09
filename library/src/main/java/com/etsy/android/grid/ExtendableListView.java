@@ -240,13 +240,10 @@ public abstract class ExtendableListView extends AbsListView {
 
 
 	protected void onSizeChanged(int w, int h) {
-
 		if (getChildCount() > 0) {
-
+			stopFlingRunnable();
 			mDataChanged = true;
-
 			rememberSyncState();
-
 		}
 	}
 
