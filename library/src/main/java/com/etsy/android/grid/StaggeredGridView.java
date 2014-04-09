@@ -153,12 +153,18 @@ public class StaggeredGridView extends ExtendableListView {
 			// get the number of columns in portrait and landscape
 			TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.StaggeredGridView, defStyle, 0);
 
-			mColumnCountPortrait = typedArray.getInteger(
-					R.styleable.StaggeredGridView_column_count_portrait,
-					DEFAULT_COLUMNS_PORTRAIT);
-			mColumnCountLandscape = typedArray.getInteger(
-					R.styleable.StaggeredGridView_column_count_landscape,
-					DEFAULT_COLUMNS_LANDSCAPE);
+			mColumnCount = typedArray.getInteger(R.styleable.StaggeredGridView_column_count, 0);
+
+			if (mColumnCount > 0) {
+				mColumnCountPortrait = mColumnCount;
+				mColumnCountLandscape = mColumnCount;
+			} else {
+				mColumnCountPortrait = typedArray.getInteger(R.styleable.StaggeredGridView_column_count_portrait,
+						DEFAULT_COLUMNS_PORTRAIT);
+
+				mColumnCountLandscape = typedArray.getInteger(R.styleable.StaggeredGridView_column_count_landscape,
+						DEFAULT_COLUMNS_LANDSCAPE);
+			}
 
 			mItemMargin = typedArray.getDimensionPixelSize(
 					R.styleable.StaggeredGridView_item_margin, 0);
@@ -224,22 +230,19 @@ public class StaggeredGridView extends ExtendableListView {
 	public void setColumnCountLandscape(int columnCountLandscape) {
 
 		mColumnCountLandscape = columnCountLandscape;
-
 		onSizeChanged(getWidth(), getHeight());
-
 		requestLayoutChildren();
 
 	}
 
 
-	public void setColumnCount(int columnCountPortrait, int columnCountLandscape) {
+	public void setColumnCount(int columnCount) {
 
-		mColumnCountPortrait = columnCountPortrait;
-
-		mColumnCountLandscape = columnCountLandscape;
+		mColumnCount = columnCount;
+		mColumnCountPortrait = columnCount;
+		mColumnCountLandscape = columnCount;
 
 		onSizeChanged(getWidth(), getHeight());
-
 		requestLayoutChildren();
 
 	}
