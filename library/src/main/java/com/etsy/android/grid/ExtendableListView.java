@@ -39,6 +39,7 @@ import android.widget.ListAdapter;
 import android.widget.Scroller;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An extendable implementation of the Android {@link android.widget.ListView}
@@ -2200,6 +2201,32 @@ public abstract class ExtendableListView extends AbsListView {
 
 	}
 
+	public void reclaimViews(List<View> views) {
+		int childCount = getChildCount();
+		RecyclerListener listener = mRecycleBin.recyclerListener;
+
+		// Reclaim views on screen
+		for (int i = 0; i < childCount; i++) {
+			View child = getChildAt(i);
+			LayoutParams lp = (LayoutParams) child.getLayoutParams();
+			// Don't reclaim header or footer views, or views that should be ignored
+			if (lp != null && mRecycleBin.shouldRecycleViewType(lp.viewType)) {
+				views.add(child);
+				if (listener != null) {
+					// Pretend they went through the scrap heap
+					listener.onMovedToScrapHeap(child);
+				}
+			}
+		}
+		mRecycleBin.reclaimScrapViews(views);
+		removeAllViewsInLayout();
+	}
+
+	@Override
+	public void setRecyclerListener(RecyclerListener listener) {
+		mRecycleBin.recyclerListener = listener;
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// RecycleBin
 	//
@@ -2209,6 +2236,7 @@ public abstract class ExtendableListView extends AbsListView {
 	 */
 	class RecycleBin {
 
+		private RecyclerListener recyclerListener;
 		/**
 		 * The position of the first view stored in mActiveViews.
 		 */
@@ -2360,6 +2388,19 @@ public abstract class ExtendableListView extends AbsListView {
 			return result;
 		}
 
+		void reclaimScrapViews(List<View> views) {
+			if (mViewTypeCount == 1) {
+				views.addAll(mCurrentScrap);
+			} else {
+				final int viewTypeCount = mViewTypeCount;
+				final ArrayList<View>[] scrapViews = mScrapViews;
+				for (int i = 0; i < viewTypeCount; ++i) {
+					final ArrayList<View> scrapPile = scrapViews[i];
+					views.addAll(scrapPile);
+				}
+			}
+		}
+
 		/**
 		 * Dump any currently saved views with transient state.
 		 */
@@ -2424,6 +2465,10 @@ public abstract class ExtendableListView extends AbsListView {
 			} else {
 				mScrapViews[viewType].add(scrap);
 			}
+
+			if (recyclerListener != null) {
+				recyclerListener.onMovedToScrapHeap(scrap);
+			}
 		}
 
 		/**
@@ -2446,6 +2491,7 @@ public abstract class ExtendableListView extends AbsListView {
 		void scrapActiveViews() {
 			final View[] activeViews = mActiveViews;
 			final boolean multipleScraps = mViewTypeCount > 1;
+			final boolean hasListener = recyclerListener != null;
 
 			ArrayList<View> scrapViews = mCurrentScrap;
 			final int count = activeViews.length;
@@ -2477,6 +2523,10 @@ public abstract class ExtendableListView extends AbsListView {
 					}
 					lp.position = mFirstActivePosition + i;
 					scrapViews.add(victim);
+
+					if (hasListener) {
+						recyclerListener.onMovedToScrapHeap(victim);
+					}
 				}
 			}
 
