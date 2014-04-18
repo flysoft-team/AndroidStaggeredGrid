@@ -1156,6 +1156,80 @@ public abstract class ExtendableListView extends AbsListView {
 		return INVALID_POSITION;
 	}
 
+	@Override
+	protected int computeVerticalScrollExtent() {
+		final int childCount = getChildCount();
+		if (childCount > 0) {
+			if (isSmoothScrollbarEnabled()) {
+				int extent = childCount * 100;
+
+				View view = getChildAt(0);
+				final int top = view.getTop();
+				int height = view.getHeight();
+				if (height > 0) {
+					extent += (top * 100) / height;
+				}
+
+				view = getChildAt(childCount - 1);
+				final int bottom = view.getBottom();
+				height = view.getHeight();
+				if (height > 0) {
+					extent -= ((bottom - getHeight()) * 100) / height;
+				}
+
+				return extent;
+			} else {
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+	@Override
+	protected int computeVerticalScrollOffset() {
+		final int firstPosition = mFirstPosition;
+		final int childCount = getChildCount();
+		if (firstPosition >= 0 && childCount > 0) {
+			final int count = getCount();
+			if (isSmoothScrollbarEnabled()) {
+				final View view = getChildAt(0);
+				final int top = view.getTop();
+				final int height = view.getHeight();
+				if (height > 0) {
+					return Math.max(firstPosition * 100 - (top * 100) / height +
+							(int) ((float) getScrollY() / getHeight() * count * 100), 0);
+				}
+			} else {
+				int index;
+				if (firstPosition == 0) {
+					index = 0;
+				} else if (firstPosition + childCount == count) {
+					index = count;
+				} else {
+					index = firstPosition + childCount / 2;
+				}
+				return (int) (firstPosition + childCount * (index / (float) count));
+			}
+		}
+		return 0;
+	}
+
+	@Override
+	protected int computeVerticalScrollRange() {
+		int result;
+		if (isSmoothScrollbarEnabled()) {
+			result = Math.max(mItemCount * 100, 0);
+			final int scrollY = getScrollY();
+			if (scrollY != 0) {
+				// Compensate for overscroll
+				result += Math.abs((int) ((float) scrollY / getHeight() * mItemCount * 100));
+			}
+		} else {
+			result = mItemCount;
+		}
+		return result;
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// MOVING STUFF!
 	//
