@@ -246,6 +246,18 @@ public class StaggeredGridView extends ExtendableListView {
 
 	}
 
+	public int getColumnCountPortrait() {
+		return mColumnCountPortrait;
+	}
+
+	public int getColumnCountLandscape() {
+		return mColumnCountLandscape;
+	}
+
+	public int getColumnCount() {
+		return mColumnCount;
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// MEASUREMENT
 	//
