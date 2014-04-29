@@ -220,9 +220,10 @@ public class StaggeredGridView extends ExtendableListView {
 
 		mColumnCountPortrait = columnCountPortrait;
 
-		onSizeChanged(getWidth(), getHeight());
-
-		requestLayoutChildren();
+//		onSizeChanged(getWidth(), getHeight());
+//
+//		requestLayoutChildren();
+		forceLayout();
 
 	}
 
@@ -230,8 +231,9 @@ public class StaggeredGridView extends ExtendableListView {
 	public void setColumnCountLandscape(int columnCountLandscape) {
 
 		mColumnCountLandscape = columnCountLandscape;
-		onSizeChanged(getWidth(), getHeight());
-		requestLayoutChildren();
+//		onSizeChanged(getWidth(), getHeight());
+//		requestLayoutChildren();
+		forceLayout();
 
 	}
 
@@ -241,8 +243,9 @@ public class StaggeredGridView extends ExtendableListView {
 		mColumnCountPortrait = columnCount;
 		mColumnCountLandscape = columnCount;
 
-		onSizeChanged(getWidth(), getHeight());
-		requestLayoutChildren();
+//		onSizeChanged(getWidth(), getHeight());
+//		requestLayoutChildren();
+		forceLayout();
 
 	}
 
@@ -867,17 +870,9 @@ public class StaggeredGridView extends ExtendableListView {
 	@Override
 	protected void onSizeChanged(final int w, final int h, final int oldw, final int oldh) {
 		super.onSizeChanged(w, h, oldw, oldh);
-		onSizeChanged(w, h);
-
-	}
-
-
-	@Override
-	protected void onSizeChanged(int w, int h) {
-		super.onSizeChanged(w, h);
 		boolean isLandscape = w > h;
 		int newColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
-		if (mColumnCount != newColumnCount) {
+		if (mColumnCount != newColumnCount || oldw != w || oldh != h) {
 			mColumnCount = newColumnCount;
 
 			mColumnWidth = calculateColumnWidth(w);
@@ -899,7 +894,9 @@ public class StaggeredGridView extends ExtendableListView {
 
 			requestLayout();
 		}
+
 	}
+
 
 	private int calculateColumnWidth(final int gridWidth) {
 		final int listPadding = getRowPaddingLeft() + getRowPaddingRight();

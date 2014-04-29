@@ -235,19 +235,15 @@ public abstract class ExtendableListView extends AbsListView {
 
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-		onSizeChanged(w, h);
-
-	}
-
-
-	protected void onSizeChanged(int w, int h) {
 		if (getChildCount() > 0) {
 			stopFlingRunnable();
 			mRecycleBin.clear();
 			mDataChanged = true;
 			rememberSyncState();
 		}
+
 	}
+
 
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// ADAPTER
