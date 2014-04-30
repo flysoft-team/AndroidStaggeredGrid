@@ -190,9 +190,9 @@ public class StaggeredGridView extends ExtendableListView {
 				.ORIENTATION_LANDSCAPE;
 		mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 		// Creating these empty arrays to avoid saving null states
-		mColumnTops = new int[0];
-		mColumnBottoms = new int[0];
-		mColumnLefts = new int[0];
+		mColumnTops = new int[mColumnCount];
+		mColumnBottoms = new int[mColumnCount];
+		mColumnLefts = new int[mColumnCount];
 		mPositionData = new SparseArray<GridItemRecord>();
 	}
 
