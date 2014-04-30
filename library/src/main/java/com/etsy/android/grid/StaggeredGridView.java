@@ -75,6 +75,12 @@ public class StaggeredGridView extends ExtendableListView {
 		GridItemRecord() {
 		}
 
+		GridItemRecord(GridItemRecord src) {
+			column = src.column;
+			heightRatio = src.heightRatio;
+			isHeaderFooter = src.isHeaderFooter;
+		}
+
 		/**
 		 * Constructor called from {@link #CREATOR}
 		 */
@@ -1231,7 +1237,6 @@ public class StaggeredGridView extends ExtendableListView {
 	public static class GridListSavedState extends ListSavedState {
 		int columnCount;
 		int[] columnTops;
-		SparseArray positionData;
 
 		public GridListSavedState(Parcelable superState) {
 			super(superState);
@@ -1245,7 +1250,6 @@ public class StaggeredGridView extends ExtendableListView {
 			columnCount = in.readInt();
 			columnTops = new int[columnCount >= 0 ? columnCount : 0];
 			in.readIntArray(columnTops);
-			positionData = in.readSparseArray(GridItemRecord.class.getClassLoader());
 		}
 
 		@Override
@@ -1253,7 +1257,6 @@ public class StaggeredGridView extends ExtendableListView {
 			super.writeToParcel(out, flags);
 			out.writeInt(columnCount);
 			out.writeIntArray(columnTops);
-			out.writeSparseArray(positionData);
 		}
 
 		@Override
@@ -1274,9 +1277,9 @@ public class StaggeredGridView extends ExtendableListView {
 		};
 	}
 
-
 	@Override
 	public Parcelable onSaveInstanceState() {
+		stableView();
 		ListSavedState listState = (ListSavedState) super.onSaveInstanceState();
 		GridListSavedState ss = new GridListSavedState(listState.getSuperState());
 
@@ -1293,12 +1296,10 @@ public class StaggeredGridView extends ExtendableListView {
 
 		if (haveChildren && mFirstPosition > 0) {
 			ss.columnCount = mColumnCount;
-			ss.columnTops = mColumnTops;
-			ss.positionData = mPositionData;
+			ss.columnTops = Arrays.copyOf(mColumnTops, mColumnTops.length);
 		} else {
 			ss.columnCount = mColumnCount >= 0 ? mColumnCount : 0;
 			ss.columnTops = new int[ss.columnCount];
-			ss.positionData = new SparseArray<Object>();
 		}
 
 		return ss;
@@ -1315,7 +1316,6 @@ public class StaggeredGridView extends ExtendableListView {
 			mColumnCount = ss.columnCount;
 			mColumnTops = ss.columnTops;
 			mColumnBottoms = new int[mColumnCount];
-			mPositionData = ss.positionData;
 		}
 
 
