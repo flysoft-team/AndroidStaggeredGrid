@@ -260,12 +260,7 @@ public abstract class ExtendableListView extends AbsListView {
 			mAdapter.unregisterDataSetObserver(mObserver);
 		}
 
-		// use a wrapper list adapter if we have a header or footer
-		if (mHeaderViewInfos.size() > 0 || mFooterViewInfos.size() > 0) {
-			mAdapter = new HeaderViewListAdapter(mHeaderViewInfos, mFooterViewInfos, adapter);
-		} else {
-			mAdapter = adapter;
-		}
+		mAdapter = new HeaderViewListAdapter(mHeaderViewInfos, mFooterViewInfos, adapter);
 
 		mDataChanged = true;
 		mItemCount = mAdapter != null ? mAdapter.getCount() : 0;
@@ -332,6 +327,9 @@ public abstract class ExtendableListView extends AbsListView {
 			throw new IllegalStateException(
 					"Cannot add header view to list -- setAdapter has already been called.");
 		}
+
+		LayoutParams params = generateHeaderFooterLayoutParams(v);
+		v.setLayoutParams(params);
 
 		FixedViewInfo info = new FixedViewInfo();
 		info.view = v;
@@ -1663,14 +1661,43 @@ public abstract class ExtendableListView extends AbsListView {
 		child.measure(childWidthSpec, childHeightSpec);
 	}
 
+	@Override
 	protected LayoutParams generateDefaultLayoutParams() {
 		return new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
 				ViewGroup.LayoutParams.WRAP_CONTENT, 0);
 	}
 
+	@Override
+	protected ViewGroup.LayoutParams generateLayoutParams(ViewGroup.LayoutParams p) {
+		return new LayoutParams(p);
+	}
+
+
+	@Override
+	public AbsListView.LayoutParams generateLayoutParams(AttributeSet attrs) {
+		return new LayoutParams(getContext(), attrs);
+	}
+
 	protected LayoutParams generateHeaderFooterLayoutParams(final View child) {
-		return new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-				ViewGroup.LayoutParams.WRAP_CONTENT, 0);
+		LayoutParams layoutParams = null;
+
+		final ViewGroup.LayoutParams childParams = child.getLayoutParams();
+		if (childParams != null) {
+			if (childParams instanceof LayoutParams) {
+				layoutParams = (LayoutParams) childParams;
+			} else {
+				layoutParams = new LayoutParams(childParams);
+			}
+		}
+		if (layoutParams == null) {
+			layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+					ViewGroup.LayoutParams.WRAP_CONTENT, AdapterView.ITEM_VIEW_TYPE_HEADER_OR_FOOTER);
+		} else {
+			layoutParams.viewType = AdapterView.ITEM_VIEW_TYPE_HEADER_OR_FOOTER;
+		}
+
+		return layoutParams;
+
 	}
 
 	/**
