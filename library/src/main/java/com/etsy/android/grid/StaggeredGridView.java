@@ -17,6 +17,7 @@
 package com.etsy.android.grid;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -179,8 +180,9 @@ public class StaggeredGridView extends ExtendableListView {
 
 			typedArray.recycle();
 		}
-
-		mColumnCount = 0; // determined onMeasure
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
+		mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 		// Creating these empty arrays to avoid saving null states
 		mColumnTops = new int[0];
 		mColumnBottoms = new int[0];
@@ -219,7 +221,9 @@ public class StaggeredGridView extends ExtendableListView {
 	public void setColumnCountPortrait(int columnCountPortrait) {
 
 		mColumnCountPortrait = columnCountPortrait;
-
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
+		mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 //		onSizeChanged(getWidth(), getHeight());
 //
 //		requestLayoutChildren();
@@ -231,6 +235,9 @@ public class StaggeredGridView extends ExtendableListView {
 	public void setColumnCountLandscape(int columnCountLandscape) {
 
 		mColumnCountLandscape = columnCountLandscape;
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
+		mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 //		onSizeChanged(getWidth(), getHeight());
 //		requestLayoutChildren();
 		forceLayout();
@@ -269,10 +276,9 @@ public class StaggeredGridView extends ExtendableListView {
 	protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-		if (mColumnCount <= 0) {
-			boolean isLandscape = getMeasuredWidth() > getMeasuredHeight();
-			mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
-		}
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
+		mColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 
 		// our column width is the width of the listview
 		// minus it's padding
@@ -349,6 +355,12 @@ public class StaggeredGridView extends ExtendableListView {
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// POSITIONING
 	//
+
+	public void setFirstVisiblePosition(int position) {
+		int div = position % mColumnCount;
+		setSelection(position - div);
+
+	}
 
 	@Override
 	protected void onChildCreated(final int position, final boolean flowDown) {
@@ -870,7 +882,8 @@ public class StaggeredGridView extends ExtendableListView {
 	@Override
 	protected void onSizeChanged(final int w, final int h, final int oldw, final int oldh) {
 		super.onSizeChanged(w, h, oldw, oldh);
-		boolean isLandscape = w > h;
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
 		int newColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
 		if (mColumnCount != newColumnCount || oldw != w || oldh != h) {
 			mColumnCount = newColumnCount;
@@ -1294,10 +1307,18 @@ public class StaggeredGridView extends ExtendableListView {
 	@Override
 	public void onRestoreInstanceState(Parcelable state) {
 		GridListSavedState ss = (GridListSavedState) state;
-		mColumnCount = ss.columnCount;
-		mColumnTops = ss.columnTops;
-		mColumnBottoms = new int[mColumnCount];
-		mPositionData = ss.positionData;
+
+		boolean isLandscape = getResources().getConfiguration().orientation == Configuration
+				.ORIENTATION_LANDSCAPE;
+		int newColumnCount = isLandscape ? mColumnCountLandscape : mColumnCountPortrait;
+		if (newColumnCount == ss.columnCount) {
+			mColumnCount = ss.columnCount;
+			mColumnTops = ss.columnTops;
+			mColumnBottoms = new int[mColumnCount];
+			mPositionData = ss.positionData;
+		}
+
+
 		mNeedSync = true;
 		super.onRestoreInstanceState(ss);
 	}
