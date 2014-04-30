@@ -2016,6 +2016,7 @@ public abstract class ExtendableListView extends AbsListView {
 	private void stopFlingRunnable() {
 		if (mFlingRunnable != null) {
 			mFlingRunnable.endFling();
+			mFlingRunnable = null;
 		}
 	}
 
@@ -2203,9 +2204,15 @@ public abstract class ExtendableListView extends AbsListView {
 		}
 	}
 
+	public void stableView() {
+		stopFlingRunnable();
+		recycleVelocityTracker();
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// ADAPTER OBSERVER
 	//
+
 
 	class AdapterDataSetObserver extends DataSetObserver {
 
@@ -2213,6 +2220,7 @@ public abstract class ExtendableListView extends AbsListView {
 
 		@Override
 		public void onChanged() {
+			stableView();
 			mDataChanged = true;
 			mOldItemCount = mItemCount;
 			mItemCount = getAdapter().getCount();
@@ -2855,7 +2863,7 @@ public abstract class ExtendableListView extends AbsListView {
 
 	@Override
 	public Parcelable onSaveInstanceState() {
-
+		stableView();
 		Parcelable superState = super.onSaveInstanceState();
 		ListSavedState ss = new ListSavedState(superState);
 
