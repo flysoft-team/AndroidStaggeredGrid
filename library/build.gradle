@@ -5,7 +5,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:19.0.+'
+    compile rootProject.ext.supportPackageVersion
 }
 
 version = VERSION_NAME
