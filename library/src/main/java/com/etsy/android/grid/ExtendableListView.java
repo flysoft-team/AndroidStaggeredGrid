@@ -17,6 +17,7 @@
 
 package com.etsy.android.grid;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.DataSetObserver;
 import android.graphics.Rect;
@@ -1972,10 +1973,6 @@ public abstract class ExtendableListView extends AbsListView {
 		return Math.max(0, mFirstPosition - getHeaderViewsCount());
 	}
 
-	public int getFirstPosition() {
-		return mFirstPosition;
-	}
-
 	@Override
 	public int getLastVisiblePosition() {
 		return Math.min(mFirstPosition + getChildCount() - 1, mAdapter != null ? mAdapter.getCount() - 1 : 0);
@@ -2174,6 +2171,7 @@ public abstract class ExtendableListView extends AbsListView {
 	 * we have an empty view, display it.  In all the other cases, make sure that the listview
 	 * is VISIBLE and that the empty view is GONE (if it's not null).
 	 */
+	@SuppressLint("WrongCall")
 	private void updateEmptyStatus() {
 		boolean empty = getAdapter() == null || getAdapter().isEmpty();
 		if (isInFilterMode()) {

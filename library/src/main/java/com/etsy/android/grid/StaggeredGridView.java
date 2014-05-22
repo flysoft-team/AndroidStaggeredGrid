@@ -363,10 +363,14 @@ public class StaggeredGridView extends ExtendableListView {
 	//
 
 	public void setFirstVisiblePosition(int position) {
-		int div = position % mColumnCount;
-		int nPosition = position - div;
-		nPosition = nPosition == 0 ? 0 : nPosition + getHeaderViewsCount();
-		setSelection(nPosition);
+		if (position < getHeaderViewsCount()) {
+			setSelection(position);
+		} else {
+			int div = position % mColumnCount;
+			int nPosition = position - div + getHeaderViewsCount();
+			setSelection(nPosition);
+		}
+
 
 	}
 
@@ -678,7 +682,7 @@ public class StaggeredGridView extends ExtendableListView {
 		if (isHeaderOrFooter(position)) {
 			return super.getNextChildUpsBottom(position);
 		} else {
-			return getLowestPositionedTop();
+			return getLowestPositionedTopUp();
 		}
 	}
 
@@ -880,7 +884,7 @@ public class StaggeredGridView extends ExtendableListView {
 	@Override
 	protected boolean hasSpaceUp() {
 		int end = mClipToPadding ? getRowPaddingTop() : 0;
-		return getLowestPositionedTop() > end;
+		return getLowestPositionedTopUp() > end;
 	}
 
 	// //////////////////////////////////////////////////////////////////////////////////////////
@@ -1072,7 +1076,7 @@ public class StaggeredGridView extends ExtendableListView {
 			if (flowDown) {
 				column = getHighestPositionedBottomColumn();
 			} else {
-				column = getLowestPositionedTopColumnFillUp();
+				column = getLowestPositionedTopColumnUp();
 
 			}
 		}
@@ -1166,7 +1170,12 @@ public class StaggeredGridView extends ExtendableListView {
 		return columnFound;
 	}
 
-	private int getLowestPositionedTopColumnFillUp() {
+	private int getLowestPositionedTopUp() {
+		final int column = getLowestPositionedTopColumnUp();
+		return mColumnTops[column];
+	}
+
+	private int getLowestPositionedTopColumnUp() {
 		int columnFound = 0;
 		// we'll go backwards through since the right most
 		// will likely be the lowest positioned Top
