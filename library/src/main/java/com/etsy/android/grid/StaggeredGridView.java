@@ -364,7 +364,9 @@ public class StaggeredGridView extends ExtendableListView {
 
 	public void setFirstVisiblePosition(int position) {
 		int div = position % mColumnCount;
-		setSelection(position - div);
+		int nPosition = position - div;
+		nPosition = nPosition == 0 ? 0 : nPosition + getHeaderViewsCount();
+		setSelection(nPosition);
 
 	}
 
@@ -1070,7 +1072,7 @@ public class StaggeredGridView extends ExtendableListView {
 			if (flowDown) {
 				column = getHighestPositionedBottomColumn();
 			} else {
-				column = getLowestPositionedTopColumn();
+				column = getLowestPositionedTopColumnFillUp();
 
 			}
 		}
@@ -1155,6 +1157,22 @@ public class StaggeredGridView extends ExtendableListView {
 		int lowestPositionedTop = Integer.MIN_VALUE;
 		// the lowest positioned top is the one with the highest value :D
 		for (int i = 0; i < mColumnCount; i++) {
+			int top = mColumnTops[i];
+			if (top > lowestPositionedTop) {
+				lowestPositionedTop = top;
+				columnFound = i;
+			}
+		}
+		return columnFound;
+	}
+
+	private int getLowestPositionedTopColumnFillUp() {
+		int columnFound = 0;
+		// we'll go backwards through since the right most
+		// will likely be the lowest positioned Top
+		int lowestPositionedTop = Integer.MIN_VALUE;
+		// the lowest positioned top is the one with the highest value :D
+		for (int i = mColumnCount - 1; i >= 0; i--) {
 			int top = mColumnTops[i];
 			if (top > lowestPositionedTop) {
 				lowestPositionedTop = top;
