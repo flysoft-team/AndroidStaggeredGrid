@@ -261,7 +261,12 @@ public abstract class ExtendableListView extends AbsListView {
 			mAdapter.unregisterDataSetObserver(mObserver);
 		}
 
-		mAdapter = new HeaderViewListAdapter(mHeaderViewInfos, mFooterViewInfos, adapter);
+		if (adapter != null || mHeaderViewInfos.size() > 0 || mFooterViewInfos.size() > 0) {
+			mAdapter = new HeaderViewListAdapter(mHeaderViewInfos, mFooterViewInfos, adapter);
+		} else {
+			mAdapter = null;
+		}
+
 
 		mDataChanged = true;
 		mItemCount = mAdapter != null ? mAdapter.getCount() : 0;
@@ -500,6 +505,7 @@ public abstract class ExtendableListView extends AbsListView {
 		// super.onLayout(changed, l, t, r, b); - skipping base AbsListView implementation on purpose
 		// haven't set an adapter yet? get to it
 		if (mAdapter == null) {
+			clearState();
 			return;
 		}
 
