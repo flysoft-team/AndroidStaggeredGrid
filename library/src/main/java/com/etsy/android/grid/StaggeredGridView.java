@@ -163,8 +163,11 @@ public class StaggeredGridView extends ExtendableListView {
 			mColumnCount = typedArray.getInteger(R.styleable.StaggeredGridView_column_count, 0);
 
 			if (mColumnCount > 0) {
-				mColumnCountPortrait = mColumnCount;
-				mColumnCountLandscape = mColumnCount;
+				mColumnCountPortrait = typedArray.getInteger(R.styleable.StaggeredGridView_column_count_portrait,
+						mColumnCount);
+
+				mColumnCountLandscape = typedArray.getInteger(R.styleable.StaggeredGridView_column_count_landscape,
+						mColumnCount);
 			} else {
 				mColumnCountPortrait = typedArray.getInteger(R.styleable.StaggeredGridView_column_count_portrait,
 						DEFAULT_COLUMNS_PORTRAIT);
