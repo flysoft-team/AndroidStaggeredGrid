@@ -220,6 +220,9 @@ public abstract class ExtendableListView extends AbsListView {
 		if (mFlingRunnable != null) {
 			removeCallbacks(mFlingRunnable);
 		}
+		if (mPendingCheckForTap != null) {
+			removeCallbacks(mPendingCheckForTap);
+		}
 
 		mIsAttached = false;
 	}
@@ -867,7 +870,7 @@ public abstract class ExtendableListView extends AbsListView {
 				mPendingCheckForTap = new CheckForTap();
 			}
 
-			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 2);
+			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 3);
 
 			if (event.getEdgeFlags() != 0 && motionPosition < 0) {
 				// If we couldn't find a view to click on, but the down event was touching
