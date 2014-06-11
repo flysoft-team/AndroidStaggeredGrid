@@ -873,7 +873,7 @@ public abstract class ExtendableListView extends AbsListView {
 				mPendingCheckForTap = new CheckForTap();
 			}
 
-			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 3);
+			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 2);
 
 			if (event.getEdgeFlags() != 0 && motionPosition < 0) {
 				// If we couldn't find a view to click on, but the down event was touching
@@ -2956,7 +2956,8 @@ public abstract class ExtendableListView extends AbsListView {
 					final int clickPosition = motionPosition + mFirstPosition;
 					int headersCount = getHeaderViewsCount();
 					if (clickPosition >= headersCount && clickPosition < adapter.getCount() - getFooterViewsCount()) {
-						performItemClick(view, clickPosition, adapter.getItemId(clickPosition));
+						performItemClick(view, clickPosition - headersCount,
+								adapter.getItemId(clickPosition));
 					}
 				}
 			}
