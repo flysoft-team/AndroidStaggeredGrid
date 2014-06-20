@@ -287,6 +287,20 @@ public abstract class ExtendableListView extends AbsListView {
 		return mItemCount;
 	}
 
+	protected void setFirstPosition(int position) {
+		if (position >= 0) {
+			mLayoutMode = LAYOUT_NORMAL;
+			mSpecificTop = getListPaddingTop();
+			mFirstPosition = position;
+			if (mNeedSync) {
+				mSyncPosition = position;
+				mSyncRowId = mAdapter.getItemId(position);
+			}
+
+			requestLayout();
+		}
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// ADAPTER VIEW - UNSUPPORTED
 	//
@@ -308,8 +322,10 @@ public abstract class ExtendableListView extends AbsListView {
 				mSyncPosition = position;
 				mSyncRowId = mAdapter.getItemId(position);
 			}
+
 			requestLayout();
 		}
+
 	}
 
 	// //////////////////////////////////////////////////////////////////////////////////////////
@@ -607,7 +623,7 @@ public abstract class ExtendableListView extends AbsListView {
 				case LAYOUT_NORMAL:
 				default: {
 					if (childCount == 0) {
-						fillFromTop(childrenTop);
+						fillSpecific(mFirstPosition, getListPaddingTop());
 					} else if (mFirstPosition < mItemCount) {
 						fillSpecific(mFirstPosition,
 								oldFirst == null ? childrenTop : oldFirst.getTop());
@@ -2797,6 +2813,9 @@ public abstract class ExtendableListView extends AbsListView {
 		mDataChanged = false;
 		mRecycleBin.clear();
 		mNeedSync = false;
+		mSyncPosition = 0;
+		mSpecificTop = 0;
+		mSyncRowId = 0;
 		mSyncState = null;
 		mLayoutMode = LAYOUT_NORMAL;
 		invalidate();
