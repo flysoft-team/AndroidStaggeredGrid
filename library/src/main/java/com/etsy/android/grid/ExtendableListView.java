@@ -2154,6 +2154,38 @@ public abstract class ExtendableListView extends AbsListView {
         }
     }
 
+	@Override
+	public boolean canScrollVertically(int direction) {
+		return canScrollList(direction);
+	}
+
+	private Rect listPaddingsRect = new Rect();
+
+	private Rect getListPaddingRect()
+	{
+		listPaddingsRect.set(getListPaddingLeft(),getListPaddingTop(),getListPaddingRight(),
+				getListPaddingBottom());
+		return listPaddingsRect;
+	}
+
+	public boolean canScrollList(int direction) {
+		final int childCount = getChildCount();
+		if (childCount == 0) {
+			return false;
+		}
+
+		final int firstPosition = mFirstPosition;
+		final Rect listPadding = getListPaddingRect();
+		if (direction > 0) {
+			final int lastBottom = getChildAt(childCount - 1).getBottom();
+			final int lastPosition = firstPosition + childCount;
+			return lastPosition < mItemCount || lastBottom > getHeight() - listPadding.bottom;
+		} else {
+			final int firstTop = getChildAt(0).getTop();
+			return firstPosition > 0 || firstTop < listPadding.top;
+		}
+	}
+
     // //////////////////////////////////////////////////////////////////////////////////////////
     // FLING RUNNABLE
     //
