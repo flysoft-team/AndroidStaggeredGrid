@@ -36,6 +36,8 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListAdapter;
@@ -2186,6 +2188,31 @@ public abstract class ExtendableListView extends AbsListView {
 		}
 	}
 
+
+	@Override
+	public void smoothScrollBy(int distance, int duration) {
+		if (mFlingRunnable == null) {
+			mFlingRunnable = new FlingRunnable();
+		}
+
+		// No sense starting to scroll if we're not going anywhere
+		final int firstPos = mFirstPosition;
+		final int childCount = getChildCount();
+		final int lastPos = firstPos + childCount;
+		final int topLimit = getPaddingTop();
+		final int bottomLimit = getHeight() - getPaddingBottom();
+
+		if (distance == 0 || mItemCount == 0 || childCount == 0 ||
+				(firstPos == 0 && getChildAt(0).getTop() == topLimit && distance < 0) ||
+				(lastPos == mItemCount &&
+						getChildAt(childCount - 1).getBottom() == bottomLimit && distance > 0)) {
+			mFlingRunnable.endFling();
+		} else {
+			reportScrollStateChange(OnScrollListener.SCROLL_STATE_FLING);
+			mFlingRunnable.startScroll(distance, duration);
+		}
+	}
+
     // //////////////////////////////////////////////////////////////////////////////////////////
     // FLING RUNNABLE
     //
@@ -2200,6 +2227,7 @@ public abstract class ExtendableListView extends AbsListView {
          * Tracks the decay of a fling scroll
          */
         private final Scroller mScroller;
+//	    private final DecelerateInterpolator decelerateInterpolator;
 
         /**
          * Y value reported by mScroller on the previous fling
@@ -2207,7 +2235,7 @@ public abstract class ExtendableListView extends AbsListView {
         private int mLastFlingY;
 
         FlingRunnable() {
-            mScroller = new Scroller(getContext());
+            mScroller = new Scroller(getContext(),new DecelerateInterpolator());
         }
 
         void start(int initialVelocity) {
