@@ -41,6 +41,7 @@ import android.view.animation.LinearInterpolator;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListAdapter;
+import android.widget.OverScroller;
 import android.widget.Scroller;
 
 import java.util.ArrayList;
@@ -2107,7 +2108,11 @@ public abstract class ExtendableListView extends AbsListView {
         }
     }
 
-    @Override
+	public int getFirstPosition() {
+		return mFirstPosition;
+	}
+
+	@Override
     public int getFirstVisiblePosition() {
         return Math.max(0, mFirstPosition - getHeaderViewsCount());
     }
@@ -2226,7 +2231,7 @@ public abstract class ExtendableListView extends AbsListView {
         /**
          * Tracks the decay of a fling scroll
          */
-        private final Scroller mScroller;
+        private final OverScroller mScroller;
 //	    private final DecelerateInterpolator decelerateInterpolator;
 
         /**
@@ -2235,7 +2240,7 @@ public abstract class ExtendableListView extends AbsListView {
         private int mLastFlingY;
 
         FlingRunnable() {
-            mScroller = new Scroller(getContext(),new DecelerateInterpolator());
+            mScroller = new OverScroller(getContext());
         }
 
         void start(int initialVelocity) {
@@ -2276,7 +2281,7 @@ public abstract class ExtendableListView extends AbsListView {
                         return;
                     }
 
-                    final Scroller scroller = mScroller;
+                    final OverScroller scroller = mScroller;
                     boolean more = scroller.computeScrollOffset();
                     final int y = scroller.getCurrY();
 
@@ -2348,7 +2353,7 @@ public abstract class ExtendableListView extends AbsListView {
         mOnScrollListener = scrollListener;
     }
 
-    void reportScrollStateChange(int newState) {
+    protected void reportScrollStateChange(int newState) {
         if (newState != mScrollState) {
             mScrollState = newState;
             if (mOnScrollListener != null) {
@@ -2357,7 +2362,20 @@ public abstract class ExtendableListView extends AbsListView {
         }
     }
 
-    void invokeOnItemScrollListener() {
+	public int getScrollState() {
+		return mScrollState;
+	}
+
+	public float getCurrentVelocity()
+	{
+		if (mFlingRunnable != null)
+		{
+			return mFlingRunnable.mScroller.getCurrVelocity();
+		}
+		return 0;
+	}
+
+	protected void invokeOnItemScrollListener() {
         if (mOnScrollListener != null) {
             mOnScrollListener.onScroll(this, mFirstPosition, getChildCount(), mItemCount);
         }
