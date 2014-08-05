@@ -1118,11 +1118,7 @@ public abstract class ExtendableListView extends AbsListView {
 				final float velocity = mVelocityTracker.getYVelocity(mActivePointerId);
 
 				if (Math.abs(velocity) > mFlingVelocity) {
-					startFlingRunnable(velocity);
-					mTouchMode = TOUCH_MODE_FLINGING;
-					mMotionY = 0;
-					mMotionX = 0;
-					invalidate();
+					fling((int) velocity);
 					return true;
 				}
 			}
@@ -1232,10 +1228,14 @@ public abstract class ExtendableListView extends AbsListView {
 	// SCROLL HELPERS
 	//
 
-	/**
-	 * Starts a scroll that moves the difference between y and our last motions y
-	 * if it's a movement that represents a big enough scroll.
-	 */
+	public void fling(int velocity) {
+		stopFlingRunnable();
+		startFlingRunnable(velocity);
+		mTouchMode = TOUCH_MODE_FLINGING;
+		mMotionY = 0;
+		mMotionX = 0;
+		invalidate();
+	}
 
 	public void startScroll(MotionEvent prevEvent, MotionEvent event) {
 		mMotionX = (int) prevEvent.getX();
@@ -2212,7 +2212,7 @@ public abstract class ExtendableListView extends AbsListView {
 		mFlingRunnable.start((int) -velocity);
 	}
 
-	private void stopFlingRunnable() {
+	protected void stopFlingRunnable() {
 		if (mFlingRunnable != null) {
 			mFlingRunnable.endFling();
 			mFlingRunnable = null;
