@@ -1196,6 +1196,24 @@ public abstract class ExtendableListView extends AbsListView {
      * Starts a scroll that moves the difference between y and our last motions y
      * if it's a movement that represents a big enough scroll.
      */
+
+    public void startScroll(MotionEvent prevEvent,MotionEvent event) {
+	    mMotionX = (int) prevEvent.getX();
+	    mMotionY = (int) prevEvent.getY();
+	    mMotionPosition = pointToPosition(mMotionX, mMotionY);
+
+	    mMotionCorrection = 0;
+	    mActivePointerId = prevEvent.getPointerId(0);
+
+	    final int index = MotionEventCompat.findPointerIndex(event, mActivePointerId);
+	    final int y = (int) MotionEventCompat.getY(event, index);
+	    final int deltaY = y - mMotionY;
+	    mTouchMode = TOUCH_MODE_SCROLLING;
+	    mMotionCorrection = deltaY > 0 ? mTouchSlop : -mTouchSlop;
+	    scrollIfNeeded(y);
+    }
+
+
     private boolean startScrollIfNeeded(final int x, final int y) {
         final int deltaY = y - mMotionY;
         final int distanceY = Math.abs(deltaY);
