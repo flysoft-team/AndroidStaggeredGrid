@@ -416,7 +416,7 @@ public class StaggeredGridView extends ExtendableListView {
 		int gridChildBottom;
 
 		int childTopMargin = getChildTopMargin(position);
-		int childBottomMargin = getChildBottomMargin();
+		int childBottomMargin = getChildBottomMargin(position);
 		int verticalMargins = childTopMargin + childBottomMargin;
 
 		if (flowDown) {
@@ -490,7 +490,7 @@ public class StaggeredGridView extends ExtendableListView {
 		int gridChildBottom;
 
 		int childTopMargin = getChildTopMargin(position);
-		int childBottomMargin = getChildBottomMargin();
+		int childBottomMargin = getChildBottomMargin(position);
 		int verticalMargins = childTopMargin + childBottomMargin;
 
 		if (flowDown) {
@@ -524,11 +524,20 @@ public class StaggeredGridView extends ExtendableListView {
 
 	private int getChildTopMargin(final int position) {
 		boolean isFirstRow = position < (getHeaderViewsCount() + mColumnCount);
-		return isFirstRow ? mItemMargin : 0;
+		return isFirstRow ? mGridPaddingTop : 0;
 	}
 
-	private int getChildBottomMargin() {
-		return mItemMargin;
+	private int getChildBottomMargin(final int position) {
+		if (getFooterViewsCount() > 0) {
+			boolean isFooter = position >= getCount() + getHeaderViewsCount();
+			if (isFooter) {
+				return mGridPaddingBottom;
+			} else return mItemMargin;
+		}
+		int lastRowSize = getCount() % mColumnCount;
+		lastRowSize = lastRowSize == 0 ? mColumnCount : lastRowSize;
+		boolean isLastRow = position >= getHeaderViewsCount() + getCount() - lastRowSize;
+		return isLastRow ? mGridPaddingBottom : mItemMargin;
 	}
 
 	public int getItemMargin() {
@@ -803,7 +812,7 @@ public class StaggeredGridView extends ExtendableListView {
 					}
 					final int childBottom = child.getBottom();
 					if (childBottom > mColumnBottoms[column]) {
-						mColumnBottoms[column] = childBottom + getChildBottomMargin();
+						mColumnBottoms[column] = childBottom + getChildBottomMargin(position);
 					}
 				} else {
 					// the header and footer here
@@ -864,11 +873,11 @@ public class StaggeredGridView extends ExtendableListView {
 
 	private int calculateColumnWidth(final int gridWidth) {
 		final int listPadding = getRowPaddingLeft() + getRowPaddingRight();
-		return (gridWidth - listPadding - mItemMargin * (mColumnCount + 1)) / mColumnCount;
+		return (gridWidth - listPadding - mItemMargin * (mColumnCount - 1)) / mColumnCount;
 	}
 
 	private int calculateColumnLeft(final int colIndex) {
-		return getRowPaddingLeft() + mItemMargin + ((mItemMargin + mColumnWidth) * colIndex);
+		return getRowPaddingLeft() + ((mItemMargin + mColumnWidth) * colIndex);
 	}
 
 	/**
@@ -926,7 +935,7 @@ public class StaggeredGridView extends ExtendableListView {
 				final int column = getHighestPositionedBottomColumn();
 				// the next top is the bottom for that column
 				top = mColumnBottoms[column];
-				bottom = top + height + getChildTopMargin(pos) + getChildBottomMargin();
+				bottom = top + height + getChildTopMargin(pos) + getChildBottomMargin(pos);
 
 				mColumnTops[column] = top;
 				mColumnBottoms[column] = bottom;
