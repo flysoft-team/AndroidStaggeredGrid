@@ -1251,6 +1251,7 @@ public abstract class ExtendableListView extends AbsListView {
 		} else {
 			initOrResetVelocityTracker();
 		}
+		mLastY = Integer.MIN_VALUE;
 		mMotionX = (int) prevEvent.getX();
 		mMotionY = (int) prevEvent.getY();
 		mMotionPosition = pointToPosition(mMotionX, mMotionY);
