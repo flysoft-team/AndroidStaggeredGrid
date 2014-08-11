@@ -1108,10 +1108,10 @@ public abstract class ExtendableListView extends AbsListView {
 			// 2 - Are we at the top or bottom?
 			int top = getFirstChildTop();
 			int bottom = getLastChildBottom();
-			final boolean atEdge = mFirstPosition == 0 &&
-					top >= getListPaddingTop() &&
-					mFirstPosition + getChildCount() < mItemCount &&
-					bottom <= getHeight() - getListPaddingBottom();
+			final boolean atEdge = (mFirstPosition == 0 &&
+					top >= getListPaddingTop()) ||
+					(mFirstPosition + getChildCount() < mItemCount &&
+							bottom <= getHeight() - getListPaddingBottom());
 
 			if (!atEdge) {
 				mVelocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
@@ -1237,7 +1237,20 @@ public abstract class ExtendableListView extends AbsListView {
 		invalidate();
 	}
 
-	public void startScroll(MotionEvent prevEvent, MotionEvent event) {
+	protected VelocityTracker snatchVelocityTracker() {
+		VelocityTracker snatchTracker = mVelocityTracker;
+		mVelocityTracker = null;
+		return snatchTracker;
+	}
+
+	public void startScroll(VelocityTracker velocityTracker, MotionEvent prevEvent, MotionEvent event) {
+
+		if (velocityTracker != null) {
+			recycleVelocityTracker();
+			mVelocityTracker = velocityTracker;
+		} else {
+			initOrResetVelocityTracker();
+		}
 		mMotionX = (int) prevEvent.getX();
 		mMotionY = (int) prevEvent.getY();
 		mMotionPosition = pointToPosition(mMotionX, mMotionY);
@@ -1268,6 +1281,7 @@ public abstract class ExtendableListView extends AbsListView {
 				mMotionCorrection = 0;
 			} else {
 				mTouchMode = TOUCH_MODE_SCROLLING;
+				notifyTouchMode();
 				mMotionCorrection = deltaY > 0 ? mTouchSlop : -mTouchSlop;
 			}
 
