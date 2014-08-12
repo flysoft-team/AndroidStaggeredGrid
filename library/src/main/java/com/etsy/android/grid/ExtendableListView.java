@@ -242,6 +242,7 @@ public abstract class ExtendableListView extends AbsListView {
 	@Override
 	protected void onDetachedFromWindow() {
 		super.onDetachedFromWindow();
+		recycleVelocityTracker();
 
 		// Detach any view left in the scrap heap
 		mRecycleBin.clear();
@@ -1228,6 +1229,14 @@ public abstract class ExtendableListView extends AbsListView {
 	// SCROLL HELPERS
 	//
 
+	public void stopAndFly(int velocity) {
+		recycleVelocityTracker();
+		stopTapOnView();
+		mActivePointerId = INVALID_POINTER;
+		fling(velocity);
+	}
+
+
 	public void fling(int velocity) {
 		stopFlingRunnable();
 		startFlingRunnable(velocity);
@@ -1244,6 +1253,16 @@ public abstract class ExtendableListView extends AbsListView {
 	}
 
 	public void startScroll(VelocityTracker velocityTracker, MotionEvent prevEvent, MotionEvent event) {
+
+		if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+			velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
+			final float velocity = velocityTracker.getYVelocity(mActivePointerId);
+			velocityTracker.recycle();
+			if (Math.abs(velocity) > mFlingVelocity) {
+				stopAndFly((int) velocity);
+			}
+			return;
+		}
 
 		if (velocityTracker != null) {
 			recycleVelocityTracker();
