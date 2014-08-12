@@ -1125,6 +1125,7 @@ public abstract class ExtendableListView extends AbsListView {
 			}
 		}
 
+		mActivePointerId = INVALID_POINTER;
 		stopFlingRunnable();
 		recycleVelocityTracker();
 		mTouchMode = TOUCH_MODE_IDLE;
@@ -1234,6 +1235,12 @@ public abstract class ExtendableListView extends AbsListView {
 		stopTapOnView();
 		mActivePointerId = INVALID_POINTER;
 		fling(velocity);
+	}
+
+	public void stopDrag() {
+		recycleVelocityTracker();
+		mActivePointerId = INVALID_POINTER;
+		mTouchMode = TOUCH_MODE_IDLE;
 	}
 
 
