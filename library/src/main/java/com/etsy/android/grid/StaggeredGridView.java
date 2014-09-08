@@ -308,6 +308,13 @@ public class StaggeredGridView extends ExtendableListView {
 	//
 
 	public void setFirstVisiblePosition(int position) {
+		if (mColumnBottoms != null) {
+			Arrays.fill(mColumnBottoms, 0);
+		}
+		if (mColumnTops != null) {
+			Arrays.fill(mColumnTops, 0);
+		}
+
 		if (position < getHeaderViewsCount()) {
 			setFirstPosition(position);
 		} else {
