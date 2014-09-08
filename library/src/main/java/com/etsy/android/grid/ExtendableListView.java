@@ -127,6 +127,8 @@ public abstract class ExtendableListView extends AbsListView {
 	// are we attached to a window - we shouldn't handle any touch events if we're not!
 	private boolean mIsAttached;
 
+	private Rect mTouchFrame;
+
 	/**
 	 * When set to true, calls to requestLayout() will not propagate up the parent hierarchy.
 	 * This is used to layout the children during a layout pass.
@@ -154,14 +156,13 @@ public abstract class ExtendableListView extends AbsListView {
 	private class CheckForLongPress extends WindowRunnnable implements Runnable {
 		public void run() {
 			final int motionPosition = mMotionPosition;
-			final View child = getChildAt(motionPosition);
+			final View child = getChildAt(motionPosition - mFirstPosition);
 			if (child != null) {
-				final int longPressPosition = mMotionPosition;
-				final long longPressId = mAdapter.getItemId(mMotionPosition + mFirstPosition);
+				final long longPressId = mAdapter.getItemId(motionPosition);
 
 				boolean handled = false;
 				if (sameWindow() && !mDataChanged) {
-					handled = performLongPress(child, longPressPosition + mFirstPosition, longPressId);
+					handled = performLongPress(child, motionPosition, longPressId);
 				}
 				if (handled) {
 					mTouchMode = TOUCH_MODE_IDLE;
@@ -764,6 +765,27 @@ public abstract class ExtendableListView extends AbsListView {
 		// TODO : add selection handling here
 	}
 
+
+	public int pointToPosition(int x, int y) {
+		Rect frame = mTouchFrame;
+		if (frame == null) {
+			mTouchFrame = new Rect();
+			frame = mTouchFrame;
+		}
+
+		final int count = getChildCount();
+		for (int i = count - 1; i >= 0; i--) {
+			final View child = getChildAt(i);
+			if (child.getVisibility() == View.VISIBLE) {
+				child.getHitRect(frame);
+				if (frame.contains(x, y)) {
+					return mFirstPosition + i;
+				}
+			}
+		}
+		return INVALID_POSITION;
+	}
+
 	public void resetToTop() {
 		// TO override
 	}
@@ -940,7 +962,7 @@ public abstract class ExtendableListView extends AbsListView {
 		public void run() {
 			if (mTouchMode == TOUCH_MODE_DOWN) {
 				mTouchMode = TOUCH_MODE_TAP;
-				final View child = getChildAt(mMotionPosition);
+				final View child = getChildAt(mMotionPosition - mFirstPosition);
 				if (child != null && !child.hasFocusable()) {
 					mLayoutMode = LAYOUT_NORMAL;
 
@@ -1066,7 +1088,7 @@ public abstract class ExtendableListView extends AbsListView {
 		setPressed(false);
 		removeCallbacks(mPendingCheckForTap);
 		removeCallbacks(mPendingCheckForLongPress);
-		View motionView = getChildAt(mMotionPosition);
+		View motionView = getChildAt(mMotionPosition - mFirstPosition);
 		if (motionView != null) {
 			motionView.setPressed(false);
 		}
@@ -1144,7 +1166,7 @@ public abstract class ExtendableListView extends AbsListView {
 		}
 		final int motionPosition = mMotionPosition;
 		if (motionPosition >= 0) {
-			final View child = getChildAt(motionPosition);
+			final View child = getChildAt(motionPosition - mFirstPosition);
 			if (child != null && !child.hasFocusable()) {
 				if (mTouchMode != TOUCH_MODE_DOWN) {
 					child.setPressed(false);
@@ -3269,14 +3291,13 @@ public abstract class ExtendableListView extends AbsListView {
 			if (adapter != null && mItemCount > 0 &&
 					motionPosition != INVALID_POSITION &&
 					motionPosition < adapter.getCount() && sameWindow()) {
-				final View view = getChildAt(motionPosition); // a fix by @pboos
+				final View view = getChildAt(motionPosition - mFirstPosition);
 
 				if (view != null) {
-					final int clickPosition = motionPosition + mFirstPosition;
 					int headersCount = getHeaderViewsCount();
-					if (clickPosition >= headersCount && clickPosition < adapter.getCount() - getFooterViewsCount()) {
-						performItemClick(view, clickPosition - headersCount,
-								adapter.getItemId(clickPosition));
+					if (motionPosition >= headersCount && motionPosition < adapter.getCount() - getFooterViewsCount()) {
+						performItemClick(view, motionPosition - headersCount,
+								adapter.getItemId(motionPosition));
 					}
 				}
 			}
