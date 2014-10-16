@@ -342,7 +342,7 @@ public abstract class ExtendableListView extends AbsListView {
 	public View getItemAt(int position) {
 
 		position += getHeaderViewsCount();
-		int firstVisibleChild = super.getFirstVisiblePosition();
+		int firstVisibleChild = getFirstVisiblePosition();
 		if (position < firstVisibleChild || position > getLastVisiblePosition()) {
 			return null;
 		}
@@ -366,6 +366,30 @@ public abstract class ExtendableListView extends AbsListView {
 	@Override
 	protected ContextMenu.ContextMenuInfo getContextMenuInfo() {
 		return mContextMenuInfo;
+	}
+
+	public int getPositionForView(View view) {
+		View listItem = view;
+		try {
+			View v;
+			while (!(v = (View) listItem.getParent()).equals(this)) {
+				listItem = v;
+			}
+		} catch (ClassCastException e) {
+			// We made it up to the window without find this list view
+			return INVALID_POSITION;
+		}
+
+		// Search the children for the list item
+		final int childCount = getChildCount();
+		for (int i = 0; i < childCount; i++) {
+			if (getChildAt(i).equals(listItem)) {
+				return mFirstPosition + i;
+			}
+		}
+
+		// Child not found!
+		return INVALID_POSITION;
 	}
 
 	@Override
@@ -2226,18 +2250,14 @@ public abstract class ExtendableListView extends AbsListView {
 		}
 	}
 
-	public int getFirstPosition() {
+	@Override
+	public int getFirstVisiblePosition() {
 		return mFirstPosition;
 	}
 
 	@Override
-	public int getFirstVisiblePosition() {
-		return Math.max(0, mFirstPosition - getHeaderViewsCount());
-	}
-
-	@Override
 	public int getLastVisiblePosition() {
-		return Math.min(mFirstPosition + getChildCount() - 1, mAdapter != null ? mAdapter.getCount() - 1 : 0);
+		return mFirstPosition + getChildCount() - 1;
 	}
 
 	// //////////////////////////////////////////////////////////////////////////////////////////
