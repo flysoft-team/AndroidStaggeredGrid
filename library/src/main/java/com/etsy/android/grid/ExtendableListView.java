@@ -1296,7 +1296,7 @@ public abstract class ExtendableListView extends AbsListView {
 		invalidate();
 	}
 
-	protected VelocityTracker snatchVelocityTracker() {
+	public VelocityTracker snatchVelocityTracker() {
 		VelocityTracker snatchTracker = mVelocityTracker;
 		mVelocityTracker = null;
 		return snatchTracker;
