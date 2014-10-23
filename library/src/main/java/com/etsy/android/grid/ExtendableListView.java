@@ -1302,7 +1302,12 @@ public abstract class ExtendableListView extends AbsListView {
 		return snatchTracker;
 	}
 
-	public void startScroll(VelocityTracker velocityTracker, MotionEvent prevEvent, MotionEvent event) {
+	public int getActivePointerId() {
+		return mActivePointerId;
+	}
+
+	public void startScroll(VelocityTracker velocityTracker, MotionEvent prevEvent, MotionEvent event,
+	                        int pointerId) {
 
 		if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
 			velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
@@ -1314,19 +1319,41 @@ public abstract class ExtendableListView extends AbsListView {
 			return;
 		}
 
+
+		mLastY = Integer.MIN_VALUE;
+		mActivePointerId = pointerId;
+		int pointerIndex = prevEvent.findPointerIndex(mActivePointerId);
+
+		if (pointerIndex >= 0) {
+			mMotionX = (int) prevEvent.getX(pointerIndex);
+			mMotionY = (int) prevEvent.getY(pointerIndex);
+		} else {
+			mMotionX = (int) prevEvent.getX();
+			mMotionY = (int) prevEvent.getY();
+		}
+
+
+		mMotionPosition = pointToPosition(mMotionX, mMotionY);
+
+		mMotionCorrection = 0;
+
+		int action = event.getActionMasked();
+		if (action == MotionEvent.ACTION_POINTER_UP) {
+			onTouchPointerUp(event);
+		}
+
+		pointerIndex = event.findPointerIndex(mActivePointerId);
+		if (pointerIndex == INVALID_POINTER) {
+			mActivePointerId = event.getPointerId(0);
+		}
+
 		if (velocityTracker != null) {
 			recycleVelocityTracker();
 			mVelocityTracker = velocityTracker;
 		} else {
 			initOrResetVelocityTracker();
 		}
-		mLastY = Integer.MIN_VALUE;
-		mMotionX = (int) prevEvent.getX();
-		mMotionY = (int) prevEvent.getY();
-		mMotionPosition = pointToPosition(mMotionX, mMotionY);
 
-		mMotionCorrection = 0;
-		mActivePointerId = prevEvent.getPointerId(0);
 
 		final int index = MotionEventCompat.findPointerIndex(event, mActivePointerId);
 		final int y = (int) MotionEventCompat.getY(event, index);
