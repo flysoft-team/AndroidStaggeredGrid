@@ -1309,7 +1309,11 @@ public abstract class ExtendableListView extends AbsListView {
 	public void startScroll(VelocityTracker velocityTracker, MotionEvent prevEvent, MotionEvent event,
 	                        int pointerId) {
 
-		if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+		if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent
+				.ACTION_CANCEL || pointerId == -1) {
+			if (velocityTracker == null) {
+				return;
+			}
 			velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
 			final float velocity = velocityTracker.getYVelocity(mActivePointerId);
 			velocityTracker.recycle();
