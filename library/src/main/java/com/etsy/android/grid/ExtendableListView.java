@@ -2517,8 +2517,9 @@ public abstract class ExtendableListView extends AbsListView {
 	private OnScrollListener mOnScrollListener;
 
 	public void setOnScrollListener(OnScrollListener scrollListener) {
-		super.setOnScrollListener(scrollListener);
 		mOnScrollListener = scrollListener;
+		super.setOnScrollListener(scrollListener);
+
 	}
 
 	protected void reportScrollStateChange(int newState) {
