@@ -129,6 +129,8 @@ public abstract class ExtendableListView extends AbsListView {
 
 	private Rect mTouchFrame;
 
+	private Runnable mPositionScrollAfterLayout;
+
 	/**
 	 * When set to true, calls to requestLayout() will not propagate up the parent hierarchy.
 	 * This is used to layout the children during a layout pass.
@@ -247,6 +249,10 @@ public abstract class ExtendableListView extends AbsListView {
 
 		// Detach any view left in the scrap heap
 		mRecycleBin.clear();
+
+		if (mPositionScrollAfterLayout == null) {
+			removeCallbacks(mPositionScrollAfterLayout);
+		}
 
 		if (mFlingRunnable != null) {
 			removeCallbacks(mFlingRunnable);
@@ -754,6 +760,10 @@ public abstract class ExtendableListView extends AbsListView {
 
 			// Flush any cached views that did not get reused above
 			recycleBin.scrapActiveViews();
+			if (mPositionScrollAfterLayout != null) {
+				post(mPositionScrollAfterLayout);
+				mPositionScrollAfterLayout = null;
+			}
 			mDataChanged = false;
 			mNeedSync = false;
 			mLayoutMode = LAYOUT_NORMAL;
@@ -2386,6 +2396,40 @@ public abstract class ExtendableListView extends AbsListView {
 		}
 	}
 
+	private PositionScroller mPositionScroller;
+
+	PositionScroller createPositionScroller() {
+		return new PositionScroller();
+	}
+
+	public void smoothScrollToPosition(int position) {
+		if (mPositionScroller == null) {
+			mPositionScroller = createPositionScroller();
+		}
+		mPositionScroller.start(position);
+	}
+
+	public void smoothScrollToPositionFromTop(int position, int offset, int duration) {
+		if (mPositionScroller == null) {
+			mPositionScroller = createPositionScroller();
+		}
+		mPositionScroller.startWithOffset(position, offset, duration);
+	}
+
+	public void smoothScrollToPositionFromTop(int position, int offset) {
+		if (mPositionScroller == null) {
+			mPositionScroller = createPositionScroller();
+		}
+		mPositionScroller.startWithOffset(position, offset, offset);
+	}
+
+	public void smoothScrollToPosition(int position, int boundPosition) {
+		if (mPositionScroller == null) {
+			mPositionScroller = createPositionScroller();
+		}
+		mPositionScroller.start(position, boundPosition);
+	}
+
 	// //////////////////////////////////////////////////////////////////////////////////////////
 	// FLING RUNNABLE
 	//
@@ -3161,6 +3205,9 @@ public abstract class ExtendableListView extends AbsListView {
 		clearRecycledState(mFooterViewInfos);
 
 		removeAllViewsInLayout();
+		if (mPositionScrollAfterLayout == null) {
+			removeCallbacks(mPositionScrollAfterLayout);
+		}
 		mFirstPosition = 0;
 		mDataChanged = false;
 		mRecycleBin.clear();
@@ -3366,6 +3413,450 @@ public abstract class ExtendableListView extends AbsListView {
 
 		public boolean sameWindow() {
 			return hasWindowFocus() && getWindowAttachCount() == mOriginalAttachCount;
+		}
+	}
+
+	protected class PositionScroller implements Runnable {
+		private static final int SCROLL_DURATION = 200;
+
+		private static final int MOVE_DOWN_POS = 1;
+		private static final int MOVE_UP_POS = 2;
+		private static final int MOVE_DOWN_BOUND = 3;
+		private static final int MOVE_UP_BOUND = 4;
+		private static final int MOVE_OFFSET = 5;
+
+		private int mMode;
+		private int mTargetPos;
+		private int mBoundPos;
+		private int mLastSeenPos;
+		private int mScrollDuration;
+		private final int mExtraScroll;
+
+		private int mOffsetFromTop;
+
+		protected PositionScroller() {
+			mExtraScroll = ViewConfiguration.get(getContext()).getScaledFadingEdgeLength();
+		}
+
+		public void start(final int position) {
+			stop();
+
+			if (mDataChanged) {
+				// Wait until we're back in a stable state to try this.
+				mPositionScrollAfterLayout = new Runnable() {
+					@Override
+					public void run() {
+						start(position);
+					}
+				};
+				return;
+			}
+
+			final int childCount = getChildCount();
+			if (childCount == 0) {
+				// Can't scroll without children.
+				return;
+			}
+
+			final int firstPos = mFirstPosition;
+			final int lastPos = firstPos + childCount - 1;
+
+			int viewTravelCount;
+			int clampedPosition = Math.max(0, Math.min(getCount() - 1, position));
+			if (clampedPosition < firstPos) {
+				viewTravelCount = firstPos - clampedPosition + 1;
+				mMode = MOVE_UP_POS;
+			} else if (clampedPosition > lastPos) {
+				viewTravelCount = clampedPosition - lastPos + 1;
+				mMode = MOVE_DOWN_POS;
+			} else {
+				scrollToVisible(clampedPosition, INVALID_POSITION, SCROLL_DURATION);
+				return;
+			}
+
+			if (viewTravelCount > 0) {
+				mScrollDuration = SCROLL_DURATION / viewTravelCount;
+			} else {
+				mScrollDuration = SCROLL_DURATION;
+			}
+			mTargetPos = clampedPosition;
+			mBoundPos = INVALID_POSITION;
+			mLastSeenPos = INVALID_POSITION;
+
+			postOnAnimation(this);
+		}
+
+		public void start(final int position, final int boundPosition) {
+			stop();
+
+			if (boundPosition == INVALID_POSITION) {
+				start(position);
+				return;
+			}
+
+			if (mDataChanged) {
+				// Wait until we're back in a stable state to try this.
+				mPositionScrollAfterLayout = new Runnable() {
+					@Override
+					public void run() {
+						start(position, boundPosition);
+					}
+				};
+				return;
+			}
+
+			final int childCount = getChildCount();
+			if (childCount == 0) {
+				// Can't scroll without children.
+				return;
+			}
+
+			final int firstPos = mFirstPosition;
+			final int lastPos = firstPos + childCount - 1;
+
+			int viewTravelCount;
+			int clampedPosition = Math.max(0, Math.min(getCount() - 1, position));
+			if (clampedPosition < firstPos) {
+				final int boundPosFromLast = lastPos - boundPosition;
+				if (boundPosFromLast < 1) {
+					// Moving would shift our bound position off the screen. Abort.
+					return;
+				}
+
+				final int posTravel = firstPos - clampedPosition + 1;
+				final int boundTravel = boundPosFromLast - 1;
+				if (boundTravel < posTravel) {
+					viewTravelCount = boundTravel;
+					mMode = MOVE_UP_BOUND;
+				} else {
+					viewTravelCount = posTravel;
+					mMode = MOVE_UP_POS;
+				}
+			} else if (clampedPosition > lastPos) {
+				final int boundPosFromFirst = boundPosition - firstPos;
+				if (boundPosFromFirst < 1) {
+					// Moving would shift our bound position off the screen. Abort.
+					return;
+				}
+
+				final int posTravel = clampedPosition - lastPos + 1;
+				final int boundTravel = boundPosFromFirst - 1;
+				if (boundTravel < posTravel) {
+					viewTravelCount = boundTravel;
+					mMode = MOVE_DOWN_BOUND;
+				} else {
+					viewTravelCount = posTravel;
+					mMode = MOVE_DOWN_POS;
+				}
+			} else {
+				scrollToVisible(clampedPosition, boundPosition, SCROLL_DURATION);
+				return;
+			}
+
+			if (viewTravelCount > 0) {
+				mScrollDuration = SCROLL_DURATION / viewTravelCount;
+			} else {
+				mScrollDuration = SCROLL_DURATION;
+			}
+			mTargetPos = clampedPosition;
+			mBoundPos = boundPosition;
+			mLastSeenPos = INVALID_POSITION;
+
+			postOnAnimation(this);
+		}
+
+		public void startWithOffset(int position, int offset) {
+			startWithOffset(position, offset, SCROLL_DURATION);
+		}
+
+		public void startWithOffset(final int position, int offset, final int duration) {
+			stop();
+
+			if (mDataChanged) {
+				// Wait until we're back in a stable state to try this.
+				final int postOffset = offset;
+				mPositionScrollAfterLayout = new Runnable() {
+					@Override
+					public void run() {
+						startWithOffset(position, postOffset, duration);
+					}
+				};
+				return;
+			}
+
+			final int childCount = getChildCount();
+			if (childCount == 0) {
+				// Can't scroll without children.
+				return;
+			}
+
+			offset += getPaddingTop();
+
+			mTargetPos = Math.max(0, Math.min(getCount() - 1, position));
+			mOffsetFromTop = offset;
+			mBoundPos = INVALID_POSITION;
+			mLastSeenPos = INVALID_POSITION;
+			mMode = MOVE_OFFSET;
+
+			final int firstPos = mFirstPosition;
+			final int lastPos = firstPos + childCount - 1;
+
+			int viewTravelCount;
+			if (mTargetPos < firstPos) {
+				viewTravelCount = firstPos - mTargetPos;
+			} else if (mTargetPos > lastPos) {
+				viewTravelCount = mTargetPos - lastPos;
+			} else {
+				// On-screen, just scroll.
+				final int targetTop = getChildAt(mTargetPos - firstPos).getTop();
+				smoothScrollBy(targetTop - offset, duration);
+				return;
+			}
+
+			// Estimate how many screens we should travel
+			final float screenTravelCount = (float) viewTravelCount / childCount;
+			mScrollDuration = screenTravelCount < 1 ?
+					duration : (int) (duration / screenTravelCount);
+			mLastSeenPos = INVALID_POSITION;
+
+			postOnAnimation(this);
+		}
+
+		/**
+		 * Scroll such that targetPos is in the visible padded region without scrolling
+		 * boundPos out of view. Assumes targetPos is onscreen.
+		 */
+		private void scrollToVisible(int targetPos, int boundPos, int duration) {
+			final int firstPos = mFirstPosition;
+			final int childCount = getChildCount();
+			final int lastPos = firstPos + childCount - 1;
+			final int paddedTop = getListPaddingTop();
+			final int paddedBottom = getHeight() - getListPaddingBottom();
+
+			if (targetPos < firstPos || targetPos > lastPos) {
+				Log.w(TAG, "scrollToVisible called with targetPos " + targetPos +
+						" not visible [" + firstPos + ", " + lastPos + "]");
+			}
+			if (boundPos < firstPos || boundPos > lastPos) {
+				// boundPos doesn't matter, it's already offscreen.
+				boundPos = INVALID_POSITION;
+			}
+
+			final View targetChild = getChildAt(targetPos - firstPos);
+			final int targetTop = targetChild.getTop();
+			final int targetBottom = targetChild.getBottom();
+			int scrollBy = 0;
+
+			if (targetBottom > paddedBottom) {
+				scrollBy = targetBottom - paddedBottom;
+			}
+			if (targetTop < paddedTop) {
+				scrollBy = targetTop - paddedTop;
+			}
+
+			if (scrollBy == 0) {
+				return;
+			}
+
+			if (boundPos >= 0) {
+				final View boundChild = getChildAt(boundPos - firstPos);
+				final int boundTop = boundChild.getTop();
+				final int boundBottom = boundChild.getBottom();
+				final int absScroll = Math.abs(scrollBy);
+
+				if (scrollBy < 0 && boundBottom + absScroll > paddedBottom) {
+					// Don't scroll the bound view off the bottom of the screen.
+					scrollBy = Math.max(0, boundBottom - paddedBottom);
+				} else if (scrollBy > 0 && boundTop - absScroll < paddedTop) {
+					// Don't scroll the bound view off the top of the screen.
+					scrollBy = Math.min(0, boundTop - paddedTop);
+				}
+			}
+
+			smoothScrollBy(scrollBy, duration);
+		}
+
+		public void stop() {
+			removeCallbacks(this);
+		}
+
+		@Override
+		public void run() {
+			final int listHeight = getHeight();
+			final int firstPos = mFirstPosition;
+
+			switch (mMode) {
+				case MOVE_DOWN_POS: {
+					final int lastViewIndex = getChildCount() - 1;
+					final int lastPos = firstPos + lastViewIndex;
+
+					if (lastViewIndex < 0) {
+						return;
+					}
+
+					if (lastPos == mLastSeenPos) {
+						// No new views, let things keep going.
+						postOnAnimation(this);
+						return;
+					}
+
+					final View lastView = getChildAt(lastViewIndex);
+					final int lastViewHeight = lastView.getHeight();
+					final int lastViewTop = lastView.getTop();
+					final int lastViewPixelsShowing = listHeight - lastViewTop;
+					final int extraScroll = lastPos < mItemCount - 1 ?
+							Math.max(getListPaddingBottom(), mExtraScroll) : getLastChildBottom();
+
+					final int scrollBy = lastViewHeight - lastViewPixelsShowing + extraScroll;
+					smoothScrollBy(scrollBy, mScrollDuration);
+
+					mLastSeenPos = lastPos;
+					if (lastPos < mTargetPos) {
+						postOnAnimation(this);
+					}
+					break;
+				}
+
+				case MOVE_DOWN_BOUND: {
+					final int nextViewIndex = 1;
+					final int childCount = getChildCount();
+
+					if (firstPos == mBoundPos || childCount <= nextViewIndex
+							|| firstPos + childCount >= mItemCount) {
+						return;
+					}
+					final int nextPos = firstPos + nextViewIndex;
+
+					if (nextPos == mLastSeenPos) {
+						// No new views, let things keep going.
+						postOnAnimation(this);
+						return;
+					}
+
+					final View nextView = getChildAt(nextViewIndex);
+					final int nextViewHeight = nextView.getHeight();
+					final int nextViewTop = nextView.getTop();
+					final int extraScroll = Math.max(getListPaddingBottom(), mExtraScroll);
+					if (nextPos < mBoundPos) {
+						smoothScrollBy(Math.max(0, nextViewHeight + nextViewTop - extraScroll),
+								mScrollDuration);
+
+						mLastSeenPos = nextPos;
+
+						postOnAnimation(this);
+					} else {
+						if (nextViewTop > extraScroll) {
+							smoothScrollBy(nextViewTop - extraScroll, mScrollDuration);
+						}
+					}
+					break;
+				}
+
+				case MOVE_UP_POS: {
+					if (firstPos == mLastSeenPos) {
+						// No new views, let things keep going.
+						postOnAnimation(this);
+						return;
+					}
+
+					final View firstView = getChildAt(0);
+					if (firstView == null) {
+						return;
+					}
+					final int firstViewTop = firstView.getTop();
+					final int extraScroll = firstPos > 0 ?
+							Math.max(mExtraScroll, getListPaddingTop()) : getListPaddingTop();
+
+					smoothScrollBy(firstViewTop - extraScroll, mScrollDuration);
+
+					mLastSeenPos = firstPos;
+
+					if (firstPos > mTargetPos) {
+						postOnAnimation(this);
+					}
+					break;
+				}
+
+				case MOVE_UP_BOUND: {
+					final int lastViewIndex = getChildCount() - 2;
+					if (lastViewIndex < 0) {
+						return;
+					}
+					final int lastPos = firstPos + lastViewIndex;
+
+					if (lastPos == mLastSeenPos) {
+						// No new views, let things keep going.
+						postOnAnimation(this);
+						return;
+					}
+
+					final View lastView = getChildAt(lastViewIndex);
+					final int lastViewHeight = lastView.getHeight();
+					final int lastViewTop = lastView.getTop();
+					final int lastViewPixelsShowing = listHeight - lastViewTop;
+					final int extraScroll = Math.max(getListPaddingTop(), mExtraScroll);
+					mLastSeenPos = lastPos;
+					if (lastPos > mBoundPos) {
+						smoothScrollBy(-(lastViewPixelsShowing - extraScroll), mScrollDuration);
+						postOnAnimation(this);
+					} else {
+						final int bottom = listHeight - extraScroll;
+						final int lastViewBottom = lastViewTop + lastViewHeight;
+						if (bottom > lastViewBottom) {
+							smoothScrollBy(-(bottom - lastViewBottom), mScrollDuration);
+						}
+					}
+					break;
+				}
+
+				case MOVE_OFFSET: {
+					if (mLastSeenPos == firstPos) {
+						// No new views, let things keep going.
+						postOnAnimation(this);
+						return;
+					}
+
+					mLastSeenPos = firstPos;
+
+					final int childCount = getChildCount();
+					final int position = mTargetPos;
+					final int lastPos = firstPos + childCount - 1;
+
+					int viewTravelCount = 0;
+					if (position < firstPos) {
+						viewTravelCount = firstPos - position + 1;
+					} else if (position > lastPos) {
+						viewTravelCount = position - lastPos;
+					}
+
+					// Estimate how many screens we should travel
+					final float screenTravelCount = (float) viewTravelCount / childCount;
+
+					final float modifier = Math.min(Math.abs(screenTravelCount), 1.f);
+					if (position < firstPos) {
+						final int distance = (int) (-getHeight() * modifier);
+						final int duration = (int) (mScrollDuration * modifier);
+						smoothScrollBy(distance, duration);
+						postOnAnimation(this);
+					} else if (position > lastPos) {
+						final int distance = (int) (getHeight() * modifier);
+						final int duration = (int) (mScrollDuration * modifier);
+						smoothScrollBy(distance, duration);
+						postOnAnimation(this);
+					} else {
+						// On-screen, just scroll.
+						final int targetTop = getChildAt(position - firstPos).getTop();
+						final int distance = targetTop - mOffsetFromTop;
+						final int duration = (int) (mScrollDuration *
+								((float) Math.abs(distance) / getHeight()));
+						smoothScrollBy(distance, duration);
+					}
+					break;
+				}
+
+				default:
+					break;
+			}
 		}
 	}
 }
