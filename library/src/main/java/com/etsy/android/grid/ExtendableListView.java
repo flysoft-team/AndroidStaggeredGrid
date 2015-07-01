@@ -3392,7 +3392,7 @@ public abstract class ExtendableListView extends AbsListView {
 				if (view != null) {
 					int headersCount = getHeaderViewsCount();
 					if (motionPosition >= headersCount && motionPosition < adapter.getCount() - getFooterViewsCount()) {
-						performItemClick(view, motionPosition - headersCount,
+						performItemClick(view, motionPosition,
 								adapter.getItemId(motionPosition));
 					}
 				}
