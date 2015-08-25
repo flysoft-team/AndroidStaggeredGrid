@@ -21,6 +21,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.DataSetObserver;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -987,9 +988,13 @@ public abstract class ExtendableListView extends AbsListView {
 		super.requestDisallowInterceptTouchEvent(disallowIntercept);
 	}
 
-	private Runnable mPendingCheckForTap;
+	private CheckForTap mPendingCheckForTap;
 
 	final class CheckForTap implements Runnable {
+
+		float x;
+		float y;
+
 		public void run() {
 			if (mTouchMode == TOUCH_MODE_DOWN) {
 				mTouchMode = TOUCH_MODE_TAP;
@@ -999,7 +1004,14 @@ public abstract class ExtendableListView extends AbsListView {
 
 					if (!mDataChanged) {
 						layoutChildren();
+						if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+							float viewX = x - child.getLeft();
+							float viewY = y - child.getTop();
+							child.drawableHotspotChanged(viewX, viewY);
+						}
 						child.setPressed(true);
+
+
 						setPressed(true);
 
 						final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
@@ -1045,7 +1057,8 @@ public abstract class ExtendableListView extends AbsListView {
 			if (mPendingCheckForTap == null) {
 				mPendingCheckForTap = new CheckForTap();
 			}
-
+			mPendingCheckForTap.x = x;
+			mPendingCheckForTap.y = y;
 			postDelayed(mPendingCheckForTap, ViewConfiguration.getTapTimeout() / 2);
 
 			if (event.getEdgeFlags() != 0 && motionPosition < 0) {
