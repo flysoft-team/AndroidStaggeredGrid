@@ -8,8 +8,7 @@ dependencies {
     compile rootProject.ext.supportPackageVersion
 }
 
-version = VERSION_NAME
-group = GROUP
+version = "1.0.3"
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -17,10 +16,6 @@ android {
 
     defaultConfig {
         minSdkVersion 9
-    }
-
-    lintOptions {
-        abortOnError false
     }
 }
 
